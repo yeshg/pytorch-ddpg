@@ -83,7 +83,7 @@ parser.add_argument("--noise", default=False, action="store_true",
                     help="Visualize policy with exploration.")
 # parser.add_argument("--new", default=False, action="store_true",
 #                    help="Visualize new (untrained) policy")
-parser.add_argument('--env-name', default="HalfCheetah-v2",
+parser.add_argument('--env-name', default="Cassie-v0",
                     help='name of the environment to run')
 
 args = parser.parse_args()

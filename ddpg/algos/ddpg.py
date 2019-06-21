@@ -6,35 +6,17 @@ from torch.autograd import Variable
 
 from torch.optim import Adam
 
-from ddpg.replay_buffer import DDPGBuffer, Transition
-from ddpg.model import Actor, Critic
-
 import numpy as np
 
 import os
 import time as time
 
 """
-DDPG Utils
+DDPG replay buffer, model, utils
 """
-
-def soft_update(target, source, tau):
-    for target_param, param in zip(target.parameters(), source.parameters()):
-        target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
-
-def hard_update(target, source):
-    for target_param, param in zip(target.parameters(), source.parameters()):
-        target_param.data.copy_(param.data)
-
-def ddpg_distance_metric(actions1, actions2):
-    """
-    Compute "distance" between actions taken by two policies at the same states
-    Expects numpy arrays
-    """
-    diff = actions1-actions2
-    mean_diff = np.mean(np.square(diff), axis=0)
-    dist = sqrt(np.mean(mean_diff))
-    return dist
+from ddpg.replay_buffer import DDPGBuffer, Transition
+from ddpg.model import Actor, Critic
+from ddpg.utils import soft_update, hard_update, ddpg_distance_metric
 
 
 class DDPG(object):
@@ -197,7 +179,7 @@ class DDPG(object):
         if critic_path is not None: 
             self.critic = torch.load(critic_path)
 
-    def train(self, env, memory, num_episodes, ounoise, param_noise, args, logger=None):
+    def train(self, env, memory, n_itr, ounoise, param_noise, args, logger=None):
 
         # TODO add procedure to improve exploration at start of training: for fixed number of steps (hyperparam) have agent take actions sampled from uniform random distribution over valid actions.
 
@@ -206,14 +188,17 @@ class DDPG(object):
         updates = 0
 
         start_time = time.time()
-
-        for i_episode in range(args.num_episodes):
-            print("********** Episode {} ************".format(i_episode))
+            
+        for itr in range(n_itr):
+            print("********** Iteration {} ************".format(itr))
             state = torch.Tensor([env.reset()])
 
-            if args.ou_noise: 
-                ounoise.scale = (args.noise_scale - args.final_noise_scale) * max(0, args.exploration_end -
-                                                                            i_episode) / args.exploration_end + args.final_noise_scale
+            if args.ou_noise:
+                """
+                As args.exploration_end is reached, gradually switch from args.noise_scale to args.final_noise_scale.
+                Purpose of this is to improve exploration at start of training.
+                """
+                ounoise.scale = (args.noise_scale - args.final_noise_scale) * max(0, args.exploration_end - itr) / args.exploration_end + args.final_noise_scale
                 ounoise.reset()
 
             if args.param_noise:
@@ -221,7 +206,9 @@ class DDPG(object):
 
             episode_reward = 0
             episode_start = time.time()
+            trainEpLen = 0
             while True:
+                trainEpLen += 1
                 """
                 select action according to current policy and exploration noise
                 """
@@ -291,7 +278,9 @@ class DDPG(object):
                 state = torch.Tensor([env.reset()])
                 episode_reward = 0
                 evaluate_start = time.time()
+                testEpLen = 0
                 while True:
+                    testEpLen += 1
                     action = self.select_action(state)
 
                     next_state, reward, done, _ = env.step(action.numpy()[0])
@@ -305,7 +294,10 @@ class DDPG(object):
                         break
 
                 rewards.append(episode_reward)
-                logger.record("Return (non-target)", rewards[-1])
+                logger.record("Return", rewards[-1])
+                logger.record("Train EpLen", trainEpLen)
+                logger.record("Test EpLen", testEpLen)
+                logger.record("Time elapsed", time.time()-start_time)
 
                 """
                 Repeat for target network
@@ -333,7 +325,7 @@ class DDPG(object):
                 logger.dump()
 
 
-            if i_episode % 10 == 0:
+            #if itr % 10 == 0:
                 self.save()
             #     state = torch.Tensor([env.reset()])
             #     episode_reward = 0
@@ -350,4 +342,4 @@ class DDPG(object):
             #             break
 
                 #writer.add_scalar('reward/test', episode_reward, i_episode)
-                print("Episode: {}, total numsteps: {}, reward: {}, average reward: {}".format(i_episode, total_numsteps, rewards[-1], np.mean(rewards[-10:])))
+                print("Iteration: {}, total numsteps: {}, reward: {}, average reward: {}".format(itr, total_numsteps, rewards[-1], np.mean(rewards[-10:])))

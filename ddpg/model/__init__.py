@@ -1,1 +1,1 @@
-from .simple_actor_critic import *
+from .mlp_actor_critic import *

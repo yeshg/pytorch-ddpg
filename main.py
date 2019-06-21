@@ -17,8 +17,8 @@ from ddpg.algos import DDPG
 import gym
 
 parser = argparse.ArgumentParser(description='PyTorch DDPG example')
-parser.add_argument('--env-name', default="HalfCheetah-v2",
-                    help='name of the environment to run')
+parser.add_argument('--env-name', default="Humanoid-v2",
+                    help='name of the environment to run (default: Humanoid-v2)')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.001, metavar='G',
@@ -39,8 +39,8 @@ parser.add_argument('--num_steps', type=int, default=1000, metavar='N',
                     help='max episode length (default: 1000)')
 parser.add_argument('--num_episodes', type=int, default=1000, metavar='N',
                     help='number of episodes (default: 1000)')
-parser.add_argument('--hidden_size', type=int, default=128, metavar='N',
-                    help='number of episodes (default: 128)')
+parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
+                    help='number of episodes (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=5, metavar='N',
                     help='model updates per simulator step (default: 5)')
 parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
