@@ -1,2 +1,2 @@
-/trained_models
+/trained_models/*.pt
 offpolicy_rl.egg-info
