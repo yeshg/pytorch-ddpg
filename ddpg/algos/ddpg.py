@@ -109,7 +109,7 @@ class DDPG(object):
         
         """
         In DDPG, next-state Q values are calculated with the target value network and target policy network
-        Once this is calculated, 
+        Once this is calculated, use Bellman equation to calculated updated Q value
         """
         next_action_batch = self.actor_target(next_state_batch)
         next_state_action_values = self.critic_target(next_state_batch, next_action_batch)

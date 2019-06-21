@@ -28,7 +28,7 @@ class Actor(nn.Module):
         x = self.linear2(x)
         x = self.ln2(x)
         x = F.relu(x)
-        mu = tanh(self.mu(x))
+        mu = torch.tanh(self.mu(x))
         return mu
 
 class Critic(nn.Module):
