@@ -65,7 +65,7 @@ def visualize(env, agent, vlen, viz_target, dt=0.033, speedup=1):
         print("avg timesteps:", vlen / len(R))
 
 parser = argparse.ArgumentParser(description="Run a model, including visualization and plotting.")
-parser.add_argument("-p", "--model_path", type=str, default="./trained_models",
+parser.add_argument("-p", "--model_path", type=str, default="./trained_models/ddpg",
                     help="File path for model to test")
 parser.add_argument("-x", "--no-visualize", dest="visualize", default=True, action='store_false',
                     help="Don't render the policy.")
@@ -97,7 +97,7 @@ else:
 
 True
 # work on making it such that you don't need to specify all of this stuff that won't be used (cause we are only testing)
-agent = DDPG(gamma=0.99, tau=0.001, hidden_size=128,
+agent = DDPG(gamma=0.99, tau=0.001, hidden_size=256,
                 num_inputs=env.observation_space.shape[0], action_space=env.action_space)
 
 agent.load_model(args.model_path)

@@ -17,8 +17,8 @@ from ddpg.algos import DDPG
 import gym
 
 parser = argparse.ArgumentParser(description='PyTorch DDPG example')
-parser.add_argument('--env-name', default="Humanoid-v2",
-                    help='name of the environment to run (default: Humanoid-v2)')
+parser.add_argument('--env-name', default="Cassie-v0",
+                    help='name of the environment to run (default: Cassie-v0)')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.001, metavar='G',
@@ -57,7 +57,12 @@ Create Logger
 logger = Logger(args, viz=True)
 
 
-env = NormalizedActions(gym.make(args.env_name))
+if(args.env_name not in ["Cassie-v0", "Cassie-mimic-v0"]):
+    env = NormalizedActions(gym.make(args.env_name))
+else:
+    # set up cassie environment
+    import gym_cassie
+    env = gym.make(args.env_name)
 
 env.seed(args.seed)
 torch.manual_seed(args.seed)

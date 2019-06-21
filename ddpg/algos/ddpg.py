@@ -143,30 +143,23 @@ class DDPG(object):
     def save(self):
         """Save all networks, including non-target"""
 
-        save_path = os.path.join("./trained_models", "ddpg")
+        #save_path = os.path.join("./trained_models", "ddpg")
 
-        try:
-            os.makedirs(save_path)
-        except OSError:
-            pass
+        # try:
+        #     os.makedirs(save_path)
+        # except OSError:
+        #     pass
+
+        print("Saving model")
+
+        if not os.path.exists('trained_models/ddpg/'):
+            os.makedirs('trained_models/ddpg/')
 
         filetype = ".pt" # pytorch model
-        torch.save(self.actor_target, os.path.join("./trained_models", "target_actor_model" + filetype))
-        torch.save(self.critic_target, os.path.join("./trained_models", "target_critic_model" + filetype))
-        torch.save(self.actor, os.path.join("./trained_models", "actor_model" + filetype))
-        torch.save(self.critic, os.path.join("./trained_models", "critic_model" + filetype))
-
-    def save_model(self, env_name, suffix=".pt", actor_path=None, critic_path=None):
-        if not os.path.exists('trained_models/'):
-            os.makedirs('trained_models/')
-
-        if actor_path is None:
-            actor_path = "models/ddpg_actor_{}_{}".format(env_name, suffix) 
-        if critic_path is None:
-            critic_path = "models/ddpg_critic_{}_{}".format(env_name, suffix) 
-        print('Saving models to {} and {}'.format(actor_path, critic_path))
-        torch.save(self.actor.state_dict(), actor_path)
-        torch.save(self.critic.state_dict(), critic_path)
+        torch.save(self.actor_target.state_dict(), os.path.join("./trained_models/ddpg", "target_actor_model" + filetype))
+        torch.save(self.critic_target.state_dict(), os.path.join("./trained_models/ddpg", "target_critic_model" + filetype))
+        torch.save(self.actor.state_dict(), os.path.join("./trained_models/ddpg", "actor_model" + filetype))
+        torch.save(self.critic.state_dict(), os.path.join("./trained_models/ddpg", "critic_model" + filetype))
 
     def load_model(self, model_path):
         target_actor_path = os.path.join(model_path, "target_actor_model.pt")
@@ -175,9 +168,11 @@ class DDPG(object):
         critic_path = os.path.join(model_path, "critic_model.pt")
         print('Loading models from {}, {}, {}, and {}'.format(target_actor_path, target_critic_path, actor_path, critic_path))
         if actor_path is not None:
-            self.actor = torch.load(actor_path)
+            self.actor.load_state_dict(torch.load(actor_path))
+            self.actor.eval()
         if critic_path is not None: 
-            self.critic = torch.load(critic_path)
+            self.critic.load_state_dict(torch.load(critic_path))
+            self.critic.eval()
 
     def train(self, env, memory, n_itr, ounoise, param_noise, args, logger=None):
 
@@ -326,7 +321,7 @@ class DDPG(object):
 
 
             #if itr % 10 == 0:
-                self.save()
+                #self.save()
             #     state = torch.Tensor([env.reset()])
             #     episode_reward = 0
             #     while True:
@@ -343,3 +338,4 @@ class DDPG(object):
 
                 #writer.add_scalar('reward/test', episode_reward, i_episode)
                 print("Iteration: {}, total numsteps: {}, reward: {}, average reward: {}".format(itr, total_numsteps, rewards[-1], np.mean(rewards[-10:])))
+                self.save()
