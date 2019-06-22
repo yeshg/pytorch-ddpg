@@ -10,9 +10,9 @@ import numpy as np
 
 import torch
 
-from ddpg.utils import OUNoise, AdaptiveParamNoiseSpec, NormalizedActions, Logger
-from ddpg.replay_buffer import DDPGBuffer
-from ddpg.algos import DDPG
+from sources.utils import OUNoise, AdaptiveParamNoiseSpec, NormalizedActions, Logger
+from sources.replay_buffer import DDPGBuffer
+from sources.algos import DDPG
 
 import gym
 

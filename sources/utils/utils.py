@@ -2,7 +2,7 @@ import numpy as np
 import gym
 
 """
-DDPG Utils
+Utils
 """
 
 def soft_update(target, source, tau):

@@ -14,9 +14,9 @@ import time as time
 """
 DDPG replay buffer, model, utils
 """
-from ddpg.replay_buffer import DDPGBuffer, Transition
-from ddpg.model import Actor, Critic
-from ddpg.utils import soft_update, hard_update, ddpg_distance_metric
+from sources.replay_buffer import DDPGBuffer, Transition
+from sources.model import Actor, Critic
+from sources.utils import soft_update, hard_update, ddpg_distance_metric
 
 
 class DDPG(object):

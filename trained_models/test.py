@@ -18,8 +18,8 @@ plt.style.use('ggplot')
 import numpy as np
 np.set_printoptions(precision=2, suppress=True)
 
-from ddpg.utils import NormalizedActions
-from ddpg.algos import DDPG
+from sources.utils import NormalizedActions
+from sources.algos import DDPG
 
 
 # TODO: add .dt to all environments. OpenAI should do the same...

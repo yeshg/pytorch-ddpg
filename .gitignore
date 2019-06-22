@@ -1,2 +1,4 @@
 /trained_models/ddpg/*.pt
 offpolicy_rl.egg-info
+*.pyc
+ddpg/__pycache__/replay_buffer.cpython-36.pyc
