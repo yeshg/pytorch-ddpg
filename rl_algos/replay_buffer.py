@@ -5,7 +5,8 @@ from collections import namedtuple
 Transition = namedtuple(
 'Transition', ('state', 'action', 'mask', 'next_state', 'reward'))
 
-class DDPGBuffer:
+# Expects transition tuples of (state, next_state, action, reward, done)
+class ReplayBuffer:
     def __init__(self, capacity):
         self.capacity = capacity
         self.memory = []

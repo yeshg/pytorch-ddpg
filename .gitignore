@@ -1,2 +1,3 @@
 /trained_models/ddpg/*.pt
 offpolicy_rl.egg-info
+.vscode/

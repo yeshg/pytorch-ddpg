@@ -12,11 +12,11 @@ import os
 import time as time
 
 """
-DDPG replay buffer, model, utils
+Import replay buffer, model, utils
 """
-from ddpg.replay_buffer import DDPGBuffer, Transition
-from ddpg.model import Actor, Critic
-from ddpg.utils import soft_update, hard_update, ddpg_distance_metric
+from rl_algos.replay_buffer import ReplayBuffer, Transition
+from rl_algos.model import Actor, Critic
+from rl_algos.utils import soft_update, hard_update, ddpg_distance_metric
 
 
 class DDPG(object):
