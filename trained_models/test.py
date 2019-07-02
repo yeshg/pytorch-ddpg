@@ -35,7 +35,7 @@ def visualize(env, agent, vlen, viz_target, dt=0.033, speedup=1):
         while True:
             t += 1
             #start = time.time()
-            action = agent.select_target_action(state) if viz_target else agent.select_action(state)
+            action = agent.select_action(state) if viz_target else agent.select_action(state)
             #print("policy time: ", time.time() - start)
 
             #start = time.time()

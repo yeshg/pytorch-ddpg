@@ -66,21 +66,6 @@ class DDPG(object):
 
         return mu.clamp(-1, 1)
 
-    # TODO: better name for this?
-    def select_target_action(self, state):
-        """
-        Select action from target actor network (no action or parameter noise)
-        """
-        self.actor_target.eval()
-
-        mu = self.actor_target((Variable(state)))
-
-        self.actor_target.train()
-
-        mu = mu.data
-
-        return mu.clamp(-1, 1)
-
 
     def update_parameters(self, batch):
         state_batch = Variable(torch.cat(batch.state))
@@ -183,7 +168,8 @@ class DDPG(object):
         updates = 0
 
         start_time = time.time()
-            
+        
+        # n_itr == args.num_episodes
         for itr in range(n_itr):
             print("********** Iteration {} ************".format(itr))
             state = torch.Tensor([env.reset()])
@@ -285,7 +271,7 @@ class DDPG(object):
 
                     state = next_state
                     if done:
-                        print("non-target evaluate time elapsed: {:.2f} s".format(time.time() - evaluate_start))
+                        print("evaluate time elapsed: {:.2f} s".format(time.time() - evaluate_start))
                         break
 
                 rewards.append(episode_reward)
@@ -293,49 +279,7 @@ class DDPG(object):
                 logger.record("Train EpLen", trainEpLen)
                 logger.record("Test EpLen", testEpLen)
                 logger.record("Time elapsed", time.time()-start_time)
-
-                """
-                Repeat for target network
-                """
-                state = torch.Tensor([env.reset()])
-                episode_reward = 0
-                evaluate_start = time.time()
-                while True:
-                    action = self.select_target_action(state)
-
-                    next_state, reward, done, _ = env.step(action.numpy()[0])
-                    episode_reward += reward
-
-                    next_state = torch.Tensor([next_state])
-
-                    state = next_state
-                    if done:
-                        print("target evaluate time elapsed: {:.2f} s".format(time.time() - evaluate_start))
-                        break
-
-                rewards.append(episode_reward)
-                logger.record("Return (target)", rewards[-1])
-
-
                 logger.dump()
 
-
-            #if itr % 10 == 0:
-                #self.save()
-            #     state = torch.Tensor([env.reset()])
-            #     episode_reward = 0
-            #     while True:
-            #         action = self.select_action(state)
-
-            #         next_state, reward, done, _ = env.step(action.numpy()[0])
-            #         episode_reward += reward
-
-            #         next_state = torch.Tensor([next_state])
-
-            #         state = next_state
-            #         if done:
-            #             break
-
-                #writer.add_scalar('reward/test', episode_reward, i_episode)
                 print("Iteration: {}, total numsteps: {}, reward: {}, average reward: {}".format(itr, total_numsteps, rewards[-1], np.mean(rewards[-10:])))
                 self.save()
