@@ -20,10 +20,11 @@ from rl_algos.utils import soft_update, hard_update, ddpg_distance_metric
 
 
 class DDPG(object):
-    def __init__(self, gamma, tau, hidden_size, num_inputs, action_space):
+    def __init__(self, gamma, tau, hidden_size, num_inputs, action_space, max_action):
 
         self.num_inputs = num_inputs
         self.action_space = action_space
+        self.max_action = max_action
 
         """
         Initialize actor and critic networks. Also initialize target networks
@@ -148,6 +149,7 @@ class DDPG(object):
         torch.save(self.actor.state_dict(), os.path.join("./trained_models/ddpg", "actor_model" + filetype))
         torch.save(self.critic.state_dict(), os.path.join("./trained_models/ddpg", "critic_model" + filetype))
 
+    # TODO: find a way to stop and resume training
     def load_model(self, model_path):
         target_actor_path = os.path.join(model_path, "target_actor_model.pt")
         target_critic_path = os.path.join(model_path, "target_critic_model.pt")

@@ -98,7 +98,7 @@ else:
 True
 # work on making it such that you don't need to specify all of this stuff that won't be used (cause we are only testing)
 agent = DDPG(gamma=0.99, tau=0.001, hidden_size=256,
-                num_inputs=env.observation_space.shape[0], action_space=env.action_space)
+                num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
 
 agent.load_model(args.model_path)
 

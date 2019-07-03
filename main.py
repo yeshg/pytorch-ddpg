@@ -104,23 +104,23 @@ Initialize Replay Buffer
 """
 memory = ReplayBuffer(args.replay_size)
 
+"""
+Action noise and parameter noise for exploration
+"""
+ounoise = OUNoise(env.action_space.shape[0]) if args.ou_noise else None
+param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.05, desired_action_stddev=args.noise_scale, adaptation_coefficient=1.05) if args.param_noise else None
+
 
 """
 Create agent and start train
 """
 if args.algo_name == "DDPG":
-    """
-    Action noise and parameter noise for exploration
-    """
-    ounoise = OUNoise(env.action_space.shape[0]) if args.ou_noise else None
-    param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.05, desired_action_stddev=args.noise_scale, adaptation_coefficient=1.05) if args.param_noise else None
-    
-    agent = DDPG(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space)
+    agent = DDPG(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space,float(env.action_space.high[0]))
     agent.train(env, memory, args.num_episodes, ounoise, param_noise, args, logger=logger)
 
 elif args.algo_name == "TD3":
-    agent = TD3(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space)
-    agent.train(env, memory, args.num_episodes, args.act_noise, args.noise_clip, args.policy_freq, logger=logger)
+    agent = TD3(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space, float(env.action_space.high[0]))
+    agent.train(env, memory, args.num_episodes, ounoise, param_noise, args.act_noise, args.noise_clip, args.policy_freq, args, logger=logger)
 # elif args.algo_name == "D4PG": #TBD
 # elif args.algo_name == "D4PG_TD3": #TBD
 
