@@ -12,7 +12,7 @@ import torch
 
 from rl_algos.utils import OUNoise, AdaptiveParamNoiseSpec, NormalizedActions, Logger
 from rl_algos.replay_buffer import ReplayBuffer
-from rl_algos.algos import DDPG
+from rl_algos.algos import DDPG, TD3
 
 import gym
 
@@ -22,7 +22,7 @@ import gym
 parser = argparse.ArgumentParser()
 
 # General args
-parser.add_argument("--algo_name", default="DDPG")
+parser.add_argument("--algo_name", default="TD3")
 parser.add_argument('--env-name', default="Cassie-v0",
                     help='name of the environment to run (default: Cassie-v0)')
 parser.add_argument('--seed', type=int, default=0,
@@ -56,13 +56,19 @@ parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
 parser.add_argument("--logdir", type=str, default="/tmp/rl/experiments/",
                     help="Where to log diagnostics to")
 parser.add_argument("--name", type=str, default="model")
+
+# Unsorted args for TD3
+parser.add_argument("--act_noise", default=0.2, type=float)		# Noise added to target policy during critic update
+parser.add_argument("--noise_clip", default=0.5, type=float)		# Range to clip target policy noise
+parser.add_argument("--policy_freq", default=2, type=int)	
+
 args = parser.parse_args()
 
 
 """
 Print out settings of this run
 """
-file_name = "{}_{}_{}".format(args.policy_name, args.env_name, str(args.seed))
+file_name = "{}_{}_{}".format(args.algo_name, args.env_name, str(args.seed))
 print("---------------------------------------")
 print("Settings: {}".format(file_name))
 print("---------------------------------------")
@@ -94,29 +100,33 @@ np.random.seed(args.seed)
 
 
 """
-Create agent
-"""
-if args.algo_name == "DDPG": agent = DDPG(args.gamma, args.tau, args.hidden_size,
-                    env.observation_space.shape[0], env.action_space)
-# elif args.algo_name == "TD3": #TBD
-# elif args.algo_name == "D4PG": #TBD
-# elif args.algo_name == "D4PG_TD3": #TBD
-
-"""
 Initialize Replay Buffer
 """
 memory = ReplayBuffer(args.replay_size)
 
+
 """
-Action noise and parameter noise for exploration
+Create agent and start train
 """
-ounoise = OUNoise(env.action_space.shape[0]) if args.ou_noise else None
-param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.05, desired_action_stddev=args.noise_scale, adaptation_coefficient=1.05) if args.param_noise else None
+if args.algo_name == "DDPG":
+    """
+    Action noise and parameter noise for exploration
+    """
+    ounoise = OUNoise(env.action_space.shape[0]) if args.ou_noise else None
+    param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.05, desired_action_stddev=args.noise_scale, adaptation_coefficient=1.05) if args.param_noise else None
+    
+    agent = DDPG(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space)
+    agent.train(env, memory, args.num_episodes, ounoise, param_noise, args, logger=logger)
+
+elif args.algo_name == "TD3":
+    agent = TD3(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space)
+    agent.train(env, memory, args.num_episodes, args.act_noise, args.noise_clip, args.policy_freq, logger=logger)
+# elif args.algo_name == "D4PG": #TBD
+# elif args.algo_name == "D4PG_TD3": #TBD
 
 
 """
 Start training loop
 """
-agent.train(env, memory, args.num_episodes, ounoise, param_noise, args, logger=logger)
     
 env.close()

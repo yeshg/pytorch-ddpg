@@ -4,9 +4,9 @@ import torch.nn.functional as F
 
 # By default all the modules are initialized to train mode (self.training = True)
 
-class Actor(nn.Module):
+class DDPGActor(nn.Module):
     def __init__(self, hidden_size, num_inputs, action_space):
-        super(Actor, self).__init__()
+        super(DDPGActor, self).__init__()
         self.action_space = action_space
         num_outputs = action_space.shape[0]
 
@@ -31,9 +31,9 @@ class Actor(nn.Module):
         mu = torch.tanh(self.mu(x))
         return mu
 
-class Critic(nn.Module):
+class DDPGCritic(nn.Module):
     def __init__(self, hidden_size, num_inputs, action_space):
-        super(Critic, self).__init__()
+        super(DDPGCritic, self).__init__()
         self.action_space = action_space
         num_outputs = action_space.shape[0]
 

@@ -6,7 +6,7 @@ import gym
 Noise utils
 """
 
-# For action noise
+# For time-correlated action noise -- apparently this does not actually lead to better performance than simple uncorrelated gaussian noise
 # from https://github.com/songrotek/DDPG/blob/master/ou_noise.py
 class OUNoise:
 

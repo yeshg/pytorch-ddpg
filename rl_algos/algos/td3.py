@@ -15,8 +15,8 @@ import time as time
 Import replay buffer, model, utils
 """
 from rl_algos.replay_buffer import ReplayBuffer, Transition
-from rl_algos.model import DDPGActor as Actor, DDPGCritic as Critic
-from rl_algos.utils import soft_update, hard_update, ddpg_distance_metric
+from rl_algos.model import TD3Actor as Actor, TD3Critic as Critic
+from rl_algos.utils import soft_update, hard_update
 
 
 class DDPG(object):
@@ -47,24 +47,25 @@ class DDPG(object):
         hard_update(self.critic_target, self.critic)
 
 
-    def select_action(self, state, action_noise=None, param_noise=None):
+    def select_action(self, act_noise, noise_clip, mode, state):
         """
         Select action with non-target actor network and add actor noise for exploration
         """
-        self.actor.eval() # https://stackoverflow.com/questions/48146926/whats-the-meaning-of-function-eval-in-torch-nn-module
-        if param_noise is not None: 
-            mu = self.actor_perturbed((Variable(state)))
-        else:
+        if(mode == "train"):
             mu = self.actor((Variable(state)))
+            mu = mu.data
+            noise = torch.FloatTensor(mu).data.normal_(0, act_noise)
+            noise = noise.clamp(-noise_clip, noise_clip)
+            mu = (mu + noise).clamp(-self.max_action, self.max_action)
+        else:
+            self.actor.eval() # https://stackoverflow.com/questions/48146926/whats-the-meaning-of-function-eval-in-torch-nn-module
+            mu = self.actor((Variable(state)))
+            mu = mu.data
 
         self.actor.train() # switch back to training mode
+        
 
-        mu = mu.data
-
-        if action_noise is not None:
-            mu += torch.Tensor(action_noise.noise())
-
-        return mu.clamp(-1, 1)
+        return mu
 
 
     def update_parameters(self, batch):
@@ -114,16 +115,6 @@ class DDPG(object):
         soft_update(self.critic_target, self.critic, self.tau)
 
         return value_loss.item(), policy_loss.item()
-
-    def perturb_actor_parameters(self, param_noise):
-        """Apply parameter noise to actor model, for exploration"""
-        hard_update(self.actor_perturbed, self.actor)
-        params = self.actor_perturbed.state_dict()
-        for name in params:
-            if 'ln' in name: 
-                pass 
-            param = params[name]
-            param += torch.randn(param.shape) * param_noise.current_stddev
     
 
     # TODO: eventually save replay buffer as well so training can be stopped and resumed
@@ -139,14 +130,14 @@ class DDPG(object):
 
         print("Saving model")
 
-        if not os.path.exists('trained_models/ddpg/'):
-            os.makedirs('trained_models/ddpg/')
+        if not os.path.exists('trained_models/td3/'):
+            os.makedirs('trained_models/td3/')
 
         filetype = ".pt" # pytorch model
-        torch.save(self.actor_target.state_dict(), os.path.join("./trained_models/ddpg", "target_actor_model" + filetype))
-        torch.save(self.critic_target.state_dict(), os.path.join("./trained_models/ddpg", "target_critic_model" + filetype))
-        torch.save(self.actor.state_dict(), os.path.join("./trained_models/ddpg", "actor_model" + filetype))
-        torch.save(self.critic.state_dict(), os.path.join("./trained_models/ddpg", "critic_model" + filetype))
+        torch.save(self.actor_target.state_dict(), os.path.join("./trained_models/td3", "target_actor_model" + filetype))
+        torch.save(self.critic_target.state_dict(), os.path.join("./trained_models/td3", "target_critic_model" + filetype))
+        torch.save(self.actor.state_dict(), os.path.join("./trained_models/td3", "actor_model" + filetype))
+        torch.save(self.critic.state_dict(), os.path.join("./trained_models/td3", "critic_model" + filetype))
 
     def load_model(self, model_path):
         target_actor_path = os.path.join(model_path, "target_actor_model.pt")
@@ -161,7 +152,7 @@ class DDPG(object):
             self.critic.load_state_dict(torch.load(critic_path))
             self.critic.eval()
 
-    def train(self, env, memory, n_itr, ounoise, param_noise, args, logger=None):
+    def train(self, env, memory, n_itr, act_noise=0.2, noise_clip=0.5, policy_freq=2, args, logger=None):
 
         rewards = []
         total_numsteps = 0
@@ -172,18 +163,17 @@ class DDPG(object):
         
         for itr in range(n_itr):    # n_itr == args.num_episodes
             print("********** Iteration {} ************".format(itr))
+
+            # Observe initial state
             state = torch.Tensor([env.reset()])
 
-            if args.ou_noise:
-                """
-                As args.exploration_end is reached, gradually switch from args.noise_scale to args.final_noise_scale.
-                Purpose of this is to improve exploration at start of training.
-                """
-                ounoise.scale = (args.noise_scale - args.final_noise_scale) * max(0, args.exploration_end - itr) / args.exploration_end + args.final_noise_scale
-                ounoise.reset()
-
-            if args.param_noise:
-                self.perturb_actor_parameters(param_noise)
+            # if args.ou_noise:
+            #     """
+            #     As args.exploration_end is reached, gradually switch from args.noise_scale to args.final_noise_scale.
+            #     Purpose of this is to improve exploration at start of training.
+            #     """
+            #     ounoise.scale = (args.noise_scale - args.final_noise_scale) * max(0, args.exploration_end - itr) / args.exploration_end + args.final_noise_scale
+            #     ounoise.reset()
 
             episode_reward = 0
             episode_start = time.time()
@@ -193,7 +183,8 @@ class DDPG(object):
                 """
                 select action according to current policy and exploration noise
                 """
-                action = self.select_action(state, ounoise, param_noise)
+                (self, act_noise, noise_clip, mode, state)
+                action = self.select_action(mode="train", state, args.act_noise, param_noise)
 
                 """
                 execute action and observe reward and new state
