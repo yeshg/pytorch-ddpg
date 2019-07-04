@@ -65,7 +65,8 @@ class DDPG(object):
         if action_noise is not None:
             mu += torch.Tensor(action_noise.noise())
 
-        return mu.clamp(-1, 1)
+        #return mu.clamp(-1, 1)
+        return mu
 
 
     def update_parameters(self, batch):

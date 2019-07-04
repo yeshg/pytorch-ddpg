@@ -1,3 +1,13 @@
-/trained_models/ddpg/*.pt
-offpolicy_rl.egg-info
+/trained_models/ddpg/*
+/trained_models/td3/*
 .vscode/
+
+# Byte=compiled / optimized / DLL files
+*__pycache__
+*.py[cod]
+
+# Distribution / packaging
+eggs/
+.eggs/
+*.egg-info
+*.egg

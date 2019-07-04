@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser()
 
 # General args
 parser.add_argument("--algo_name", default="TD3")
-parser.add_argument('--env-name', default="Cassie-v0",
+parser.add_argument('--env-name', default="Humanoid-v2",
                     help='name of the environment to run (default: Cassie-v0)')
 parser.add_argument('--seed', type=int, default=0,
                     help='random seed (default: 0)')

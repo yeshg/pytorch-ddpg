@@ -19,7 +19,7 @@ import numpy as np
 np.set_printoptions(precision=2, suppress=True)
 
 from rl_algos.utils import NormalizedActions
-from rl_algos.algos import DDPG
+from rl_algos.algos import DDPG, TD3
 
 
 # TODO: add .dt to all environments. OpenAI should do the same...
@@ -35,7 +35,11 @@ def visualize(env, agent, vlen, viz_target, dt=0.033, speedup=1):
         while True:
             t += 1
             #start = time.time()
-            action = agent.select_action(state) if viz_target else agent.select_action(state)
+            #action = agent.select_action(state) if viz_target else agent.select_action(state)
+
+            action = torch.Tensor(np.random.rand(1,10) * 100)
+            print(action.shape)
+            print(action)
             #print("policy time: ", time.time() - start)
 
             #start = time.time()
@@ -86,6 +90,8 @@ parser.add_argument("--noise", default=False, action="store_true",
 parser.add_argument('--env-name', default="Cassie-v0",
                     help='name of the environment to run')
 
+parser.add_argument('--algo_name', default="TD3",
+                    help='name of the algo model to load')
 args = parser.parse_args()
 
 if(args.env_name not in ["Cassie-v0", "Cassie-mimic-v0"]):
@@ -95,12 +101,26 @@ else:
     import gym_cassie
     env = gym.make(args.env_name)
 
-True
+
+if args.algo_name == "DDPG":
+    agent = DDPG(gamma=0.99, tau=0.001, hidden_size=256,
+                num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
+    agent.load_model("./trained_models/ddpg")
+
+elif args.algo_name == "TD3":
+    agent = TD3(gamma=0.99, tau=0.001, hidden_size=256,
+                num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
+    agent.load_model("./trained_models/td3")
+# elif args.algo_name == "D4PG": #TBD
+# elif args.algo_name == "D4PG_TD3": #TBD
+
+
 # work on making it such that you don't need to specify all of this stuff that won't be used (cause we are only testing)
 agent = DDPG(gamma=0.99, tau=0.001, hidden_size=256,
                 num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
 
-agent.load_model(args.model_path)
+
+
 
 if(not args.visualize):
     visualize(env, agent, args.vlen, args.viz_target)

@@ -65,7 +65,8 @@ class TD3(object):
         if action_noise is not None:
             mu += torch.Tensor(action_noise.noise())
 
-        return mu.clamp(-1, 1)
+        #return mu.clamp(-1, 1)
+        return mu
 
 
     def update_parameters(self, batch, act_noise, noise_clip, policy_freq, itr):
