@@ -13,6 +13,7 @@ import torch
 from rl_algos.utils import OUNoise, AdaptiveParamNoiseSpec, NormalizedActions, Logger
 from rl_algos.replay_buffer import ReplayBuffer
 from rl_algos.algos import DDPG, TD3
+from rl_algos.model import GaussianMLPActor as Actor, GaussianMLPCritic as Critic
 
 import gym
 
@@ -23,7 +24,7 @@ parser = argparse.ArgumentParser()
 
 # General args
 parser.add_argument("--algo_name", default="TD3")
-parser.add_argument('--env-name', default="Humanoid-v2",
+parser.add_argument('--env-name', default="Cassie-v0",
                     help='name of the environment to run (default: Cassie-v0)')
 parser.add_argument('--seed', type=int, default=0,
                     help='random seed (default: 0)')
@@ -33,7 +34,7 @@ parser.add_argument('--num_episodes', type=int, default=1000, metavar='N',
 # Noise / early exploration args / hyperparameters
 parser.add_argument('--exploration_end', type=int, default=100, metavar='N',
                     help='number of episodes with randomly sampled actions (default: 100)')
-parser.add_argument('--ou_noise', type=bool, default=True)
+parser.add_argument('--ou_noise', type=bool, default=False)
 parser.add_argument('--param_noise', type=bool, default=False)
 parser.add_argument('--noise_scale', type=float, default=0.3, metavar='G',
                     help='initial noise scale (default: 0.3)')
@@ -104,6 +105,33 @@ Initialize Replay Buffer
 """
 memory = ReplayBuffer(args.replay_size)
 
+
+"""
+Create actor (policy) and critic networks
+"""
+
+obs_dim = env.observation_space.shape[0] 
+action_dim = env.action_space.shape[0]
+
+actor = Actor(
+    obs_dim, action_dim, 
+    nonlinearity="relu", 
+    bounded=True, 
+    init_std=np.exp(-2), 
+    learn_std=False,
+    normc_init=False
+)
+
+critic = Critic(
+    obs_dim, action_dim, 
+    nonlinearity="relu", 
+    bounded=True, 
+    init_std=np.exp(-2), 
+    learn_std=False,
+    normc_init=False
+)
+
+
 """
 Action noise and parameter noise for exploration
 """
@@ -115,18 +143,15 @@ param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.05, desired_action_stddev=
 Create agent and start train
 """
 if args.algo_name == "DDPG":
-    agent = DDPG(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space,float(env.action_space.high[0]))
+    agent = DDPG(args.gamma, args.tau, args.hidden_size, obs_dim, env.action_space,float(env.action_space.high[0]))
     agent.train(env, memory, args.num_episodes, ounoise, param_noise, args, logger=logger)
 
 elif args.algo_name == "TD3":
-    agent = TD3(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space, float(env.action_space.high[0]))
+    agent = TD3(args.gamma, args.tau, args.hidden_size, obs_dim, env.action_space, float(env.action_space.high[0]), actor, critic)
     agent.train(env, memory, args.num_episodes, ounoise, param_noise, args.act_noise, args.noise_clip, args.policy_freq, args, logger=logger)
 # elif args.algo_name == "D4PG": #TBD
 # elif args.algo_name == "D4PG_TD3": #TBD
 
 
-"""
-Start training loop
-"""
     
 env.close()

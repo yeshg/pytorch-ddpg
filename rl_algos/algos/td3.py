@@ -15,12 +15,13 @@ import time as time
 Import replay buffer, model, utils
 """
 from rl_algos.replay_buffer import ReplayBuffer, Transition
-from rl_algos.model import TD3Actor as Actor, TD3Critic as Critic
+#from rl_algos.model import TD3Actor as Actor, TD3Critic as Critic
 from rl_algos.utils import soft_update, hard_update, ddpg_distance_metric
+from rl_algos.envs import get_normalization_params
 
 
 class TD3(object):
-    def __init__(self, gamma, tau, hidden_size, num_inputs, action_space, max_action):
+    def __init__(self, gamma, tau, hidden_size, num_inputs, action_space, max_action, actor, critic):
 
         self.num_inputs = num_inputs
         self.action_space = action_space
@@ -29,41 +30,35 @@ class TD3(object):
         """
         Initialize actor and critic networks. Also initialize target networks
         """
-        self.actor = Actor(hidden_size, self.num_inputs, self.action_space)
-        self.actor_target = Actor(hidden_size, self.num_inputs, self.action_space)
-        self.actor_perturbed = Actor(hidden_size, self.num_inputs, self.action_space)
-        self.actor_optim = Adam(self.actor.parameters(), lr=1e-4)
+        self.actor = self.actor_target = actor
+        self.critic = self.critic_target = critic
 
-        self.critic = Critic(hidden_size, self.num_inputs, self.action_space)
-        self.critic_target = Critic(hidden_size, self.num_inputs, self.action_space)
+        """
+        Copy initial params of the actor and critic networks to their respective target networks
+        """
+        hard_update(self.actor_target, self.actor)
+        hard_update(self.critic_target, self.critic)
+
+        self.actor_optim = Adam(self.actor.parameters(), lr=1e-4)
         self.critic_optim = Adam(self.critic.parameters(), lr=1e-3)
 
         self.gamma = gamma
         self.tau = tau
 
-        """
-        Copy initial params of the actor and critic networks to their respective target networks
-        """
-        hard_update(self.actor_target, self.actor)  # Make sure target is with the same weight
-        hard_update(self.critic_target, self.critic)
 
-
-    def select_action(self, state, action_noise=None, param_noise=None):
+    def select_action(self, state, action_noise=None, logger=None):
         """
         Select action with non-target actor network and add actor noise for exploration
         """
-        self.actor.eval() # https://stackoverflow.com/questions/48146926/whats-the-meaning-of-function-eval-in-torch-nn-module
-        if param_noise is not None: 
-            mu = self.actor_perturbed((Variable(state)))
-        else:
-            mu = self.actor((Variable(state)))
-
-        self.actor.train() # switch back to training mode
+        #self.actor.eval() # https://stackoverflow.com/questions/48146926/whats-the-meaning-of-function-eval-in-torch-nn-module
+        mu = self.actor((Variable(state)))
+        #self.actor.train() # switch back to training mode
 
         mu = mu.data
 
         if action_noise is not None:
-            mu += torch.Tensor(action_noise.noise())
+            noise = action_noise.noise()
+            mu += torch.Tensor(noise)
 
         #return mu.clamp(-1, 1)
         return mu
@@ -132,16 +127,6 @@ class TD3(object):
             return value_loss.item(), policy_loss.item()
 
         return value_loss.item(), None
-    
-    def perturb_actor_parameters(self, param_noise):
-        """Apply parameter noise to actor model, for exploration"""
-        hard_update(self.actor_perturbed, self.actor)
-        params = self.actor_perturbed.state_dict()
-        for name in params:
-            if 'ln' in name: 
-                pass 
-            param = params[name]
-            param += torch.randn(param.shape) * param_noise.current_stddev
 
     # TODO: eventually save replay buffer as well so training can be stopped and resumed
     def save(self):
@@ -179,7 +164,19 @@ class TD3(object):
             self.critic.load_state_dict(torch.load(critic_path))
             self.critic.eval()
 
-    def train(self, env, memory, n_itr, ounoise, param_noise, act_noise, noise_clip, policy_freq, args, logger=None):
+    def train(self, env, memory, n_itr, ounoise, act_noise, noise_clip, policy_freq, args, logger=None):
+
+        # TODO: put this in its own function?
+        """
+        Input normalization
+        """
+        # used to be iter=10000
+        obs_mean, obs_std = map(torch.Tensor, get_normalization_params(iter=1000, noise_std=1, policy=self.actor, env_fn=env))
+        
+        self.actor.obs_mean = self.actor_target.obs_mean = self.critic.obs_mean = self.critic_target.obs_mean = obs_mean
+        self.actor.obs_std = self.actor_target.obs_std = self.critic.obs_std = self.critic_target.obs_std = obs_std
+
+        self.actor.train(0)
 
         rewards = []
         total_numsteps = 0
@@ -194,26 +191,28 @@ class TD3(object):
             # Observe initial state
             state = torch.Tensor([env.reset()])
 
-            if args.ou_noise:
-                """
-                As args.exploration_end is reached, gradually switch from args.noise_scale to args.final_noise_scale.
-                Purpose of this is to improve exploration at start of training.
-                """
-                ounoise.scale = (args.noise_scale - args.final_noise_scale) * max(0, args.exploration_end - itr) / args.exploration_end + args.final_noise_scale
-                ounoise.reset()
+            # if args.ou_noise:
+            #     """
+            #     As args.exploration_end is reached, gradually switch from args.noise_scale to args.final_noise_scale.
+            #     Purpose of this is to improve exploration at start of training.
+            #     """
+            #     ounoise.scale = (args.noise_scale - args.final_noise_scale) * max(0, args.exploration_end - itr) / args.exploration_end + args.final_noise_scale
+            #     ounoise.reset()
 
-            if args.param_noise:
-                self.perturb_actor_parameters(param_noise)
+            # if args.param_noise:
+            #     self.perturb_actor_parameters(param_noise)
 
             episode_reward = 0
             episode_start = time.time()
             trainEpLen = 0
             while True:
+                env.render()
+
                 trainEpLen += 1
                 """
                 select action according to current policy and exploration noise
                 """
-                action = self.select_action(state, ounoise, param_noise)
+                action = self.select_action(state, ounoise, logger)
 
                 """
                 execute action and observe reward and new state
@@ -256,14 +255,14 @@ class TD3(object):
 
             # TODO: take param noise out of TD3??
             # Update param_noise based on distance metric
-            if args.param_noise:
-                episode_transitions = memory.memory[memory.position-t:memory.position]
-                states = torch.cat([transition[0] for transition in episode_transitions], 0)
-                unperturbed_actions = self.select_action(states, None, None)
-                perturbed_actions = torch.cat([transition[1] for transition in episode_transitions], 0)
+            # if args.param_noise:
+            #     episode_transitions = memory.memory[memory.position-t:memory.position]
+            #     states = torch.cat([transition[0] for transition in episode_transitions], 0)
+            #     unperturbed_actions = self.select_action(states, None, None)
+            #     perturbed_actions = torch.cat([transition[1] for transition in episode_transitions], 0)
 
-                ddpg_dist = ddpg_distance_metric(perturbed_actions.numpy(), unperturbed_actions.numpy())
-                param_noise.adapt(ddpg_dist)
+            #     ddpg_dist = ddpg_distance_metric(perturbed_actions.numpy(), unperturbed_actions.numpy())
+            #     param_noise.adapt(ddpg_dist)
 
             """
             Logging with visdom
@@ -278,7 +277,7 @@ class TD3(object):
                 testEpLen = 0
                 while True:
                     testEpLen += 1
-                    action = self.select_action(state)
+                    action = self.select_action(state, action_noise=0)
 
                     next_state, reward, done, _ = env.step(action.numpy()[0])
                     episode_reward += reward

@@ -34,17 +34,17 @@ def visualize(env, agent, vlen, viz_target, dt=0.033, speedup=1):
         
         while True:
             t += 1
-            #start = time.time()
-            #action = agent.select_action(state) if viz_target else agent.select_action(state)
+            start = time.time()
+            action = agent.select_action(state) if viz_target else agent.select_action(state)
 
-            action = torch.Tensor(np.random.rand(1,10) * 100)
-            print(action.shape)
-            print(action)
-            #print("policy time: ", time.time() - start)
+            #action = torch.Tensor(np.random.rand(1,10) * 100)
+            #print(action.shape)
+            #print(action)
+            print("policy time: ", time.time() - start)
 
-            #start = time.time()
+            start = time.time()
             next_state, reward, done, _ = env.step(action.numpy()[0])
-            #print("env time: ", time.time() - start)
+            print("env time: ", time.time() - start)
 
             episode_reward += reward
 
