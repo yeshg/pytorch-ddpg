@@ -46,7 +46,7 @@ class TD3(object):
         self.tau = tau
 
 
-    def select_action(self, state, action_noise=None, logger=None):
+    def select_action(self, state, action_noise_std=None, logger=None):
         """
         Select action with non-target actor network and add actor noise for exploration
         """
@@ -56,15 +56,14 @@ class TD3(object):
 
         mu = mu.data
 
-        if action_noise is not None:
-            noise = action_noise.noise()
-            mu += torch.Tensor(noise)
+        if action_noise_std is not None:
+            mu += torch.randn(mu.size()) * action_noise_std
 
         #return mu.clamp(-1, 1)
         return mu
 
 
-    def update_parameters(self, batch, act_noise, noise_clip, policy_freq, itr):
+    def update_parameters(self, batch, target_noise, noise_clip, policy_freq, itr):
         state_batch = Variable(torch.cat(batch.state))
         action_batch = Variable(torch.cat(batch.action))
         reward_batch = Variable(torch.cat(batch.reward))
@@ -74,7 +73,7 @@ class TD3(object):
         """
         In TD3, targets actions are perturbed with (clipped) gaussian noise before being used to compute targets
         """
-        noise = torch.FloatTensor(action_batch).data.normal_(0, act_noise)
+        noise = torch.FloatTensor(action_batch).data.normal_(0, target_noise)
         noise = noise.clamp(-noise_clip, noise_clip)
         next_action_batch = (self.actor_target(next_state_batch) + noise).clamp(-self.max_action, self.max_action)
 
@@ -164,19 +163,21 @@ class TD3(object):
             self.critic.load_state_dict(torch.load(critic_path))
             self.critic.eval()
 
-    def train(self, env, memory, n_itr, ounoise, act_noise, noise_clip, policy_freq, args, logger=None):
+    def train(self, env, memory, n_itr, act_noise, target_noise, noise_clip, policy_freq, args, logger=None):
 
         # TODO: put this in its own function?
         """
         Input normalization
         """
         # used to be iter=10000
-        obs_mean, obs_std = map(torch.Tensor, get_normalization_params(iter=1000, noise_std=1, policy=self.actor, env_fn=env))
+        # obs_mean, obs_std = map(torch.Tensor, get_normalization_params(iter=1000, noise_std=1, policy=self.actor, env_fn=env))
         
-        self.actor.obs_mean = self.actor_target.obs_mean = self.critic.obs_mean = self.critic_target.obs_mean = obs_mean
-        self.actor.obs_std = self.actor_target.obs_std = self.critic.obs_std = self.critic_target.obs_std = obs_std
+        #self.actor.obs_mean = self.actor_target.obs_mean = self.critic.obs_mean = self.critic_target.obs_mean = obs_mean
+        #self.actor.obs_std = self.actor_target.obs_std = self.critic.obs_std = self.critic_target.obs_std = obs_std
 
         self.actor.train(0)
+
+        action_noise_std = act_noise # initial action noise std
 
         rewards = []
         total_numsteps = 0
@@ -190,6 +191,18 @@ class TD3(object):
 
             # Observe initial state
             state = torch.Tensor([env.reset()])
+
+
+            """
+            As args.exploration_end is reached, gradually switch from args.noise_scale to args.final_noise_scale.
+            Purpose of this is to improve exploration at start of training.
+            """
+            # TODO
+            if(itr > args.exploration_end):
+                action_noise_std = args.final_noise_scale
+            else:
+                # gradually go up to final_noise_scale by
+                action_noise_std = (args.final_noise_scale - act_noise) / (itr+1)
 
             # if args.ou_noise:
             #     """
@@ -206,13 +219,12 @@ class TD3(object):
             episode_start = time.time()
             trainEpLen = 0
             while True:
-                env.render()
 
                 trainEpLen += 1
                 """
                 select action according to current policy and exploration noise
                 """
-                action = self.select_action(state, ounoise, logger)
+                action = self.select_action(state, act_noise)
 
                 """
                 execute action and observe reward and new state
@@ -244,7 +256,7 @@ class TD3(object):
                         """
                         Calculate updated Q value (Bellman equation) and update parameters of all networks
                         """
-                        value_loss, policy_loss = self.update_parameters(batch, act_noise, noise_clip, policy_freq, itr)
+                        value_loss, policy_loss = self.update_parameters(batch, target_noise, noise_clip, policy_freq, itr)
 
                         updates += 1
                 if done:
@@ -277,7 +289,7 @@ class TD3(object):
                 testEpLen = 0
                 while True:
                     testEpLen += 1
-                    action = self.select_action(state, action_noise=0)
+                    action = self.select_action(state, action_noise_std=None)
 
                     next_state, reward, done, _ = env.step(action.numpy()[0])
                     episode_reward += reward
@@ -294,6 +306,7 @@ class TD3(object):
                 logger.record("Train EpLen", trainEpLen)
                 logger.record("Test EpLen", testEpLen)
                 logger.record("Time elapsed", time.time()-start_time)
+                logger.record("Action Noise std", action_noise_std)
                 logger.dump()
 
                 print("Iteration: {}, total numsteps: {}, reward: {}, average reward: {}".format(itr, total_numsteps, rewards[-1], np.mean(rewards[-10:])))

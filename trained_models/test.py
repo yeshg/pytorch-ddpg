@@ -1,4 +1,7 @@
 # TODO: organize this file
+from rl_algos.algos import DDPG, TD3
+from rl_algos.utils import NormalizedActions
+import numpy as np
 import argparse
 import pickle
 import torch
@@ -15,11 +18,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 plt.style.use('ggplot')
 
-import numpy as np
 np.set_printoptions(precision=2, suppress=True)
-
-from rl_algos.utils import NormalizedActions
-from rl_algos.algos import DDPG, TD3
 
 
 # TODO: add .dt to all environments. OpenAI should do the same...
@@ -31,15 +30,16 @@ def visualize(env, agent, vlen, viz_target, dt=0.033, speedup=1):
     t = 0
 
     with torch.no_grad():
-        
+
         while True:
             t += 1
             start = time.time()
-            action = agent.select_action(state) if viz_target else agent.select_action(state)
+            action = agent.select_action(
+                state) if viz_target else agent.select_action(state)
 
             #action = torch.Tensor(np.random.rand(1,10) * 100)
-            #print(action.shape)
-            #print(action)
+            # print(action.shape)
+            # print(action)
             print("policy time: ", time.time() - start)
 
             start = time.time()
@@ -61,14 +61,16 @@ def visualize(env, agent, vlen, viz_target, dt=0.033, speedup=1):
             env.render()
 
             time.sleep(dt / speedup)
-        
+
         if not done:
             R += [episode_reward]
 
         print("avg reward:", sum(R)/len(R))
         print("avg timesteps:", vlen / len(R))
 
-parser = argparse.ArgumentParser(description="Run a model, including visualization and plotting.")
+
+parser = argparse.ArgumentParser(
+    description="Run a model, including visualization and plotting.")
 parser.add_argument("-p", "--model_path", type=str, default="./trained_models/ddpg",
                     help="File path for model to test")
 parser.add_argument("-x", "--no-visualize", dest="visualize", default=True, action='store_false',
@@ -87,10 +89,10 @@ parser.add_argument("--noise", default=False, action="store_true",
                     help="Visualize policy with exploration.")
 # parser.add_argument("--new", default=False, action="store_true",
 #                    help="Visualize new (untrained) policy")
-parser.add_argument('--env-name', default="Cassie-v0",
+parser.add_argument('--env-name', default="Walker2d-v3",
                     help='name of the environment to run')
 
-parser.add_argument('--algo_name', default="TD3",
+parser.add_argument('--algo_name', default="DDPG",
                     help='name of the algo model to load')
 args = parser.parse_args()
 
@@ -104,24 +106,39 @@ else:
 
 if args.algo_name == "DDPG":
     agent = DDPG(gamma=0.99, tau=0.001, hidden_size=256,
-                num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
+                 num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
     agent.load_model("./trained_models/ddpg")
 
 elif args.algo_name == "TD3":
+    actor = Actor(
+        obs_dim, action_dim,
+        nonlinearity="relu",
+        bounded=True,
+        init_std=np.exp(-2),
+        learn_std=False,
+        normc_init=False
+    )
+
+    critic = Critic(
+        obs_dim, action_dim,
+        nonlinearity="relu",
+        bounded=True,
+        init_std=np.exp(-2),
+        learn_std=False,
+        normc_init=False
+    )
+
     agent = TD3(gamma=0.99, tau=0.001, hidden_size=256,
-                num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
+                num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]), actor=actor, critic=critic)
     agent.load_model("./trained_models/td3")
 # elif args.algo_name == "D4PG": #TBD
 # elif args.algo_name == "D4PG_TD3": #TBD
 
 
 # work on making it such that you don't need to specify all of this stuff that won't be used (cause we are only testing)
-agent = DDPG(gamma=0.99, tau=0.001, hidden_size=256,
-                num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
-
-
+# agent = DDPG(gamma=0.99, tau=0.001, hidden_size=256,
+#              num_inputs=env.observation_space.shape[0], action_space=env.action_space, max_action=float(env.action_space.high[0]))
 
 
 if(not args.visualize):
     visualize(env, agent, args.vlen, args.viz_target)
-
