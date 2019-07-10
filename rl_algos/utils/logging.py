@@ -4,24 +4,31 @@ A simple live-updating logger for logging training progress.
 Based largely off Berkely's DRL course HW4, which is itself inspired by rllab.
 https://github.com/berkeleydeeprlcourse/homework/blob/master/hw4/logz.py
 """
+import sys
+import hashlib
+import subprocess
+import os
+import atexit
+import time
+import shutil
+import os.path as osp
+import numpy as np
+from collections import OrderedDict
+import configparser
+from functools import partial
+import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 
-from functools import partial
-import os.path as osp, shutil, time, atexit, os, subprocess, hashlib, sys
-import configparser
-from collections import OrderedDict
-import numpy as np
 
 matplotlib.rcParams.update({'font.size': 8})
 
 #from scipy.signal import medfilt
 
 
-viz_config = {"xlabel":"Timesteps",
-"xlim":"Variable"}
+viz_config = {"xlabel": "Timesteps",
+              "xlim": "Variable"}
 
 
 class Logger():
@@ -49,7 +56,7 @@ class Logger():
             self.viz = Visdom()
             self.wins = []
             #self.viz_config = self.config_monitor(config_path="../config/monitor.ini")
-            self.viz_config = {"xlabel":"Iterations", "xlim":"Variable"}
+            self.viz_config = {"xlabel": "Timesteps", "xlim": "Variable"}
         else:
             self.viz = None
 
@@ -60,19 +67,19 @@ class Logger():
 
     def _get_directory(self, args):
         """Use hyperparms to set a directory to output diagnostic files."""
-        #get hyperparameters as dictionary
+        # get hyperparameters as dictionary
         arg_dict = args.__dict__
 
         assert "seed" in arg_dict, \
-        "You must provide a 'seed' key in your command line arguments"
+            "You must provide a 'seed' key in your command line arguments"
 
         assert "logdir" in arg_dict, \
-        "You must provide a 'logdir' key in your command line arguments."
+            "You must provide a 'logdir' key in your command line arguments."
 
-        #sort the keys so the same hyperparameters will always have the same hash
+        # sort the keys so the same hyperparameters will always have the same hash
         arg_dict = OrderedDict(sorted(arg_dict.items(), key=lambda t: t[0]))
 
-        #remove seed so it doesn't get hashed, store value for filename
+        # remove seed so it doesn't get hashed, store value for filename
         # same for logging directory
         seed = str(arg_dict.pop("seed"))
         logdir = str(arg_dict.pop('logdir'))
@@ -113,10 +120,10 @@ class Logger():
                 self.wins.append(None)
         else:
             assert key in self.header, \
-            "Key %s not in header. All keys must be set in first iteration" % key
+                "Key %s not in header. All keys must be set in first iteration" % key
 
         assert key not in self.current_row, \
-        "You already set key %s this iteration. Did you forget to call dump()?" % key
+            "You already set key %s this iteration. Did you forget to call dump()?" % key
 
         self.current_row[key] = val
 
@@ -160,7 +167,8 @@ class Logger():
 
     def config_monitor(self, config_path=None):
         if config_path is None:
-            config_path = os.path.join(os.path.dirname(__file__), "../config/monitor.ini")
+            config_path = os.path.join(os.path.dirname(
+                __file__), "../config/monitor.ini")
 
         config = configparser.ConfigParser()
         config.read(config_path)
@@ -171,7 +179,7 @@ class Logger():
         def running_mean(x, N):
             if len(x) < N:
                 return x
-            cumsum = np.cumsum(np.insert(x, 0, 0)) 
+            cumsum = np.cumsum(np.insert(x, 0, 0))
             return (cumsum[N:] - cumsum[:-N]) / float(N)
 
         data, header = self._load_data()
@@ -181,14 +189,14 @@ class Logger():
 
             if header[i] in self.viz_list or self.viz_list[0] == "all":
                 # do some kind of window based smoothing
-                #y = running_mean(y, 30) 
+                #y = running_mean(y, 30)
 
                 xscale = 1 if self.viz_config["xlabel"] == "Iterations" \
-                        else (self.args.max_timesteps / 1e6)
+                    else (self.args.max_timesteps / 1e6)
 
                 x = np.arange(y.size) * xscale
 
-                fig = plt.figure(figsize=(5,4))
+                fig = plt.figure(figsize=(5, 4))
 
                 plt.plot(x, y, "C%i" % i)
 
@@ -202,8 +210,10 @@ class Logger():
                 plt.show()
                 plt.draw()
 
-                image = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                image = image.reshape(fig.canvas.get_width_height()[::-1] + (3, ))
+                image = np.fromstring(
+                    fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+                image = image.reshape(
+                    fig.canvas.get_width_height()[::-1] + (3, ))
                 image = np.transpose(image, (2, 0, 1))
 
                 plt.close(fig)
@@ -220,7 +230,7 @@ class Logger():
             vals = line.rstrip('\n').split('\t')
             vals = [float(val) for val in vals]
             data.append(vals)
-        
+
         data = np.array(data)
 
         log_file.close()
