@@ -154,8 +154,13 @@ class TD3(object):
         torch.save(self.critic.state_dict(), os.path.join(
             "./trained_models/TD3", "critic_model" + filetype))
 
-    def load(self, filename, directory):
-        self.actor.load_state_dict(torch.load(
-            '%s/%s_actor.pth' % (directory, filename)))
-        self.critic.load_state_dict(torch.load(
-            '%s/%s_critic.pth' % (directory, filename)))
+    def load(self, model_path):
+        actor_path = os.path.join(model_path, "actor_model.pt")
+        critic_path = os.path.join(model_path, "critic_model.pt")
+        print('Loading models from {} and {}'.format(actor_path, critic_path))
+        if actor_path is not None:
+            self.actor.load_state_dict(torch.load(actor_path))
+            self.actor.eval()
+        if critic_path is not None:
+            self.critic.load_state_dict(torch.load(critic_path))
+            self.critic.eval()
