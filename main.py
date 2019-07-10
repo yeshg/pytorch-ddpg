@@ -16,19 +16,19 @@ from rl_algos.algos import DDPG, TD3
 
 import gym
 
-
-
 #parser = argparse.ArgumentParser(description='PyTorch DDPG example')
 parser = argparse.ArgumentParser()
 
 # General args
-parser.add_argument("--algo_name", default="TD3")
-parser.add_argument('--env-name', default="Humanoid-v2",
+parser.add_argument("--algo_name", default="DDPG")
+parser.add_argument('--env-name', default="Walker2d-v3",
                     help='name of the environment to run (default: Cassie-v0)')
 parser.add_argument('--seed', type=int, default=0,
                     help='random seed (default: 0)')
-parser.add_argument('--num_episodes', type=int, default=1000, metavar='N',
+parser.add_argument('--num_episodes', type=int, default=10000, metavar='N',
                     help='number of episodes before stoppping training (default: 1000)')
+parser.add_argument('--eval_freq', type=int, default=1, metavar='N',
+                    help='number of episodes between each evaluation (default: 1)')
 
 # Noise / early exploration args / hyperparameters
 parser.add_argument('--exploration_end', type=int, default=100, metavar='N',
@@ -115,11 +115,11 @@ param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.05, desired_action_stddev=
 Create agent and start train
 """
 if args.algo_name == "DDPG":
-    agent = DDPG(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space,float(env.action_space.high[0]))
+    agent = DDPG(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space,float(env.action_space.high[0]),float(env.action_space.low[0]))
     agent.train(env, memory, args.num_episodes, ounoise, param_noise, args, logger=logger)
 
 elif args.algo_name == "TD3":
-    agent = TD3(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space, float(env.action_space.high[0]))
+    agent = TD3(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space, float(env.action_space.high[0]),float(env.action_space.low[0]))
     agent.train(env, memory, args.num_episodes, ounoise, param_noise, args.act_noise, args.noise_clip, args.policy_freq, args, logger=logger)
 # elif args.algo_name == "D4PG": #TBD
 # elif args.algo_name == "D4PG_TD3": #TBD

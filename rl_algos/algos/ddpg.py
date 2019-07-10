@@ -20,11 +20,12 @@ from rl_algos.utils import soft_update, hard_update, ddpg_distance_metric
 
 
 class DDPG(object):
-    def __init__(self, gamma, tau, hidden_size, num_inputs, action_space, max_action):
+    def __init__(self, gamma, tau, hidden_size, num_inputs, action_space, max_action, min_action):
 
         self.num_inputs = num_inputs
         self.action_space = action_space
         self.max_action = max_action
+        self.min_action = min_action
 
         """
         Initialize actor and critic networks. Also initialize target networks
@@ -65,8 +66,7 @@ class DDPG(object):
         if action_noise is not None:
             mu += torch.Tensor(action_noise.noise())
 
-        #return mu.clamp(-1, 1)
-        return mu
+        return mu.clamp(self.min_action, self.max_action)
 
 
     def update_parameters(self, batch):
@@ -247,37 +247,38 @@ class DDPG(object):
                 ddpg_dist = ddpg_distance_metric(perturbed_actions.numpy(), unperturbed_actions.numpy())
                 param_noise.adapt(ddpg_dist)
 
-            """
-            Logging with visdom
-            """
-            if logger is not None:
+            if itr % args.eval_freq == 0:
                 """
-                Evaluate non-target actor
+                Logging with visdom
                 """
-                state = torch.Tensor([env.reset()])
-                episode_reward = 0
-                evaluate_start = time.time()
-                testEpLen = 0
-                while True:
-                    testEpLen += 1
-                    action = self.select_action(state)
+                if logger is not None:
+                    """
+                    Evaluate non-target actor
+                    """
+                    state = torch.Tensor([env.reset()])
+                    episode_reward = 0
+                    evaluate_start = time.time()
+                    testEpLen = 0
+                    while True:
+                        testEpLen += 1
+                        action = self.select_action(state)
 
-                    next_state, reward, done, _ = env.step(action.numpy()[0])
-                    episode_reward += reward
+                        next_state, reward, done, _ = env.step(action.numpy()[0])
+                        episode_reward += reward
 
-                    next_state = torch.Tensor([next_state])
+                        next_state = torch.Tensor([next_state])
 
-                    state = next_state
-                    if done:
-                        print("evaluate time elapsed: {:.2f} s".format(time.time() - evaluate_start))
-                        break
+                        state = next_state
+                        if done:
+                            print("evaluate time elapsed: {:.2f} s".format(time.time() - evaluate_start))
+                            break
 
-                rewards.append(episode_reward)
-                logger.record("Return", rewards[-1])
-                logger.record("Train EpLen", trainEpLen)
-                logger.record("Test EpLen", testEpLen)
-                logger.record("Time elapsed", time.time()-start_time)
-                logger.dump()
+                    rewards.append(episode_reward)
+                    logger.record("Return", rewards[-1])
+                    logger.record("Train EpLen", trainEpLen)
+                    logger.record("Test EpLen", testEpLen)
+                    logger.record("Time elapsed", time.time()-start_time)
+                    logger.dump()
 
-                print("Iteration: {}, total numsteps: {}, reward: {}, average reward: {}".format(itr, total_numsteps, rewards[-1], np.mean(rewards[-10:])))
-                self.save()
+                    print("Iteration: {}, total numsteps: {}, reward: {}, average reward: {}".format(itr, total_numsteps, rewards[-1], np.mean(rewards[-10:])))
+                    self.save()
