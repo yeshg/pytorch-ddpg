@@ -34,14 +34,12 @@ def visualize(env, agent, vlen, viz_target, dt=0.033, speedup=1):
         while True:
             t += 1
             start = time.time()
-            action = agent.select_action(
-                state) if viz_target else agent.select_action(state)
-
+            action = agent.select_action(np.array(state))
             print(action)
             print("policy time: ", time.time() - start)
 
             start = time.time()
-            next_state, reward, done, _ = env.step(action.numpy()[0])
+            next_state, reward, done, _ = env.step(action)
             print("env time: ", time.time() - start)
 
             episode_reward += reward
@@ -83,7 +81,7 @@ parser.add_argument("--vlen", type=int, default=75,
                     help="Length of trajectory to visualize")
 parser.add_argument("--noise", default=False, action="store_true",
                     help="Visualize policy with exploration.")
-parser.add_argument('--env-name', default="Walker2d-v3",
+parser.add_argument('--env-name', default="Walker2d-v2",
                     help='name of the environment to run')
 
 parser.add_argument('--algo_name', default="TD3",
