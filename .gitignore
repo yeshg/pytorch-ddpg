@@ -1,5 +1,6 @@
 /trained_models/ddpg/*
 /trained_models/td3/*
+/results/*
 .vscode/
 
 # Byte=compiled / optimized / DLL files
