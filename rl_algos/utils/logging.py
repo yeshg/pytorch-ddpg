@@ -20,7 +20,7 @@ matplotlib.rcParams.update({'font.size': 8})
 #from scipy.signal import medfilt
 
 
-viz_config = {"xlabel":"Iterations",
+viz_config = {"xlabel":"Timesteps",
 "xlim":"Variable"}
 
 
@@ -184,7 +184,7 @@ class Logger():
                 #y = running_mean(y, 30) 
 
                 xscale = 1 if self.viz_config["xlabel"] == "Iterations" \
-                        else (self.args.num_steps / 1e6)
+                        else (self.args.max_timesteps / 1e6)
 
                 x = np.arange(y.size) * xscale
 
