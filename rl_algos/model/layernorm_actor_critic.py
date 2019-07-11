@@ -14,23 +14,19 @@ class LN_Actor(nn.Module):
         self.l2 = nn.Linear(hidden_size1, hidden_size2)
         self.ln2 = nn.LayerNorm(hidden_size2)
         self.l3 = nn.Linear(hidden_size2, action_dim)
-        self.ln3 = nn.LayerNorm(1)
 
     def forward(self, x):
         x = F.relu(self.l1(x))
         x = self.ln1(x)
         x = F.relu(self.l2(x))
         x = self.ln2(x)
-        x = self.max_action * torch.tanh(self.l3(x))
-        x = self.ln3(x)
+        x = torch.tanh(self.l3(x))
+        #x = self.max_action * torch.tanh(self.l3(x))
         return x
-
-
-"""
 
 class LN_DDPGCritic(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_size1, hidden_size2):
-        super(DDPGCritic, self).__init__()
+        super(LN_DDPGCritic, self).__init__()
 
         self.l1 = nn.Linear(state_dim + action_dim, hidden_size1)
         self.ln1 = nn.LayerNorm(hidden_size1)
@@ -39,7 +35,6 @@ class LN_DDPGCritic(nn.Module):
         self.ln2 = nn.LayerNorm(hidden_size2)
 
         self.l3 = nn.Linear(hidden_size2, 1)
-        self.ln3 = nn.LayerNorm(1)
 
     def forward(self, inputs, actions):
         xu = torch.cat([inputs, actions], 1)
@@ -49,7 +44,6 @@ class LN_DDPGCritic(nn.Module):
         x1 = F.relu(self.l2(x1))
         x1 = self.ln2(x1)
         x1 = self.l3(x1)
-        x1 = self.ln3(x1)
 
         return x1
 
@@ -58,7 +52,7 @@ class LN_DDPGCritic(nn.Module):
 
 class LN_TD3Critic(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_size1, hidden_size2):
-        super(TD3Critic, self).__init__()
+        super(LN_TD3Critic, self).__init__()
 
         # Q1 architecture
         self.l1 = nn.Linear(state_dim + action_dim, hidden_size1)
@@ -68,7 +62,6 @@ class LN_TD3Critic(nn.Module):
         self.ln2 = nn.LayerNorm(hidden_size2)
 
         self.l3 = nn.Linear(hidden_size2, 1)
-        self.ln3 = nn.LayerNorm(1)
 
         # Q2 architecture
         self.l4 = nn.Linear(state_dim + action_dim, hidden_size1)
@@ -78,7 +71,6 @@ class LN_TD3Critic(nn.Module):
         self.ln5 = nn.LayerNorm(hidden_size2)
 
         self.l6 = nn.Linear(hidden_size2, 1)
-        self.ln6 = nn.LayerNorm(1)
 
     def forward(self, inputs, actions):
         xu = torch.cat([inputs, actions], 1)
@@ -88,14 +80,12 @@ class LN_TD3Critic(nn.Module):
         x1 = F.relu(self.l2(x1))
         x1 = self.ln2(x1)
         x1 = self.l3(x1)
-        x1 = self.ln3(x1)
 
-        x2 = F.relu(self.l1(xu))
-        x2 = self.ln1(x2)
-        x2 = F.relu(self.l2(x2))
-        x2 = self.ln2(x2)
-        x2 = self.l3(x2)
-        x2 = self.ln3(x2)
+        x2 = F.relu(self.l4(xu))
+        x2 = self.ln4(x2)
+        x2 = F.relu(self.l5(x2))
+        x2 = self.ln5(x2)
+        x2 = self.l6(x2)
 
         return x1, x2
 
@@ -107,8 +97,5 @@ class LN_TD3Critic(nn.Module):
         x1 = F.relu(self.l2(x1))
         x1 = self.ln2(x1)
         x1 = self.l3(x1)
-        x1 = self.ln3(x1)
 
         return x1
-
-"""

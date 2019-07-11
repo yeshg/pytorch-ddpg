@@ -6,9 +6,10 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 
 from rl_algos.replay_buffer import ReplayBuffer
-from rl_algos.model.simple_actor_critic import Actor, DDPGCritic as Critic
+from rl_algos.model.layernorm_actor_critic import LN_Actor as Actor, LN_DDPGCritic as Critic
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 # Re-tuned version of Deep Deterministic Policy Gradients (DDPG)
 # Paper: https://arxiv.org/abs/1509.02971
@@ -16,10 +17,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DDPG(object):
     def __init__(self, state_dim, action_dim, max_action):
-        self.actor = Actor(state_dim, action_dim,
-                           max_action, 400, 300).to(device)
-        self.actor_target = Actor(
-            state_dim, action_dim, max_action, 400, 300).to(device)
+        self.actor = Actor(state_dim, action_dim, max_action, 400, 300).to(device)
+        self.actor_target = Actor(state_dim, action_dim, max_action, 400, 300).to(device)
+        self.actor_perturbed = Actor(state_dim, action_dim, max_action, 400, 300).to(device)
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters())
 
@@ -28,9 +28,25 @@ class DDPG(object):
         self.critic_target.load_state_dict(self.critic.state_dict())
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters())
 
-    def select_action(self, state):
+    def perturb_actor_parameters(self, param_noise):
+        """Apply parameter noise to actor model, for exploration"""
+        self.actor_perturbed.load_state_dict(self.actor.state_dict())
+        params = self.actor_perturbed.state_dict()
+        for name in params:
+            if 'ln' in name: 
+                pass 
+            param = params[name]
+            param += torch.randn(param.shape) * param_noise.current_stddev
+
+    def select_action(self, state, param_noise=None):
         state = torch.FloatTensor(state.reshape(1, -1)).to(device)
-        return self.actor(state).cpu().data.numpy().flatten()
+
+        self.actor.eval()
+
+        if param_noise is not None:
+            return self.actor_perturbed(state).cpu().data.numpy().flatten()
+        else:
+            return self.actor(state).cpu().data.numpy().flatten()
 
     def train(self, replay_buffer, iterations, batch_size=100, discount=0.99, tau=0.005):
 

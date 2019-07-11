@@ -6,9 +6,10 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 
 from rl_algos.replay_buffer import ReplayBuffer
-from rl_algos.model.simple_actor_critic import Actor, TD3Critic as Critic
+from rl_algos.model.layernorm_actor_critic import LN_Actor as Actor, LN_TD3Critic as Critic
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 # Implementation of Twin Delayed Deep Deterministic Policy Gradients (TD3)
 # Paper: https://arxiv.org/abs/1802.09477
@@ -29,9 +30,25 @@ class TD3(object):
 
         self.max_action = max_action
 
-    def select_action(self, state):
+    def perturb_actor_parameters(self, param_noise):
+        """Apply parameter noise to actor model, for exploration"""
+        self.actor_perturbed.load_state_dict(self.actor.state_dict())
+        params = self.actor_perturbed.state_dict()
+        for name in params:
+            if 'ln' in name: 
+                pass 
+            param = params[name]
+            param += torch.randn(param.shape) * param_noise.current_stddev
+
+    def select_action(self, state, param_noise=None):
         state = torch.FloatTensor(state.reshape(1, -1)).to(device)
-        return self.actor(state).cpu().data.numpy().flatten()
+
+        self.actor.eval()
+
+        if param_noise is not None:
+            return self.actor_perturbed(state).cpu().data.numpy().flatten()
+        else:
+            return self.actor(state).cpu().data.numpy().flatten()
 
     def train(self, replay_buffer, iterations, batch_size=100, discount=0.99, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2):
 

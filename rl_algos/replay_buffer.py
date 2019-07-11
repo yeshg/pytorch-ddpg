@@ -7,17 +7,17 @@ import numpy as np
 
 
 class ReplayBuffer(object):
-    def __init__(self, max_size=1e6):
+    def __init__(self, max_size=1e7):
         self.storage = []
         self.max_size = max_size
         self.ptr = 0
 
     def add(self, data):
-        if len(self.storage) == self.max_size:
-            self.storage[int(self.ptr)] = data
-            self.ptr = (self.ptr + 1) % self.max_size
-        else:
+        if len(self.storage) < self.max_size:
             self.storage.append(data)
+        self.storage[int(self.ptr)] = data
+        self.ptr = (self.ptr + 1) % self.max_size
+            
 
     def sample(self, batch_size):
         ind = np.random.randint(0, len(self.storage), size=batch_size)
@@ -32,3 +32,13 @@ class ReplayBuffer(object):
             d.append(np.array(D, copy=False))
 
         return np.array(x), np.array(y), np.array(u), np.array(r).reshape(-1, 1), np.array(d).reshape(-1, 1)
+
+    def get_transitions_from_range(self, start, end):
+        ind = np.arange(int(start), int(end))
+        x, u = [], []
+        for i in ind:
+            X, Y, U, R, D = self.storage[i]
+            x.append(np.array(X, copy=False))
+            u.append(np.array(U, copy=False))
+        
+        return np.array(x), np.array(u)
