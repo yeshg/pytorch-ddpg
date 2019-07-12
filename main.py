@@ -111,28 +111,25 @@ if __name__ == "__main__":
     if not os.path.exists("./results"):
         os.makedirs("./results")
 
-    print("./trained_models/" + args.policy_name + "/")
-    print(args.save_models)
-
     if args.save_models and not os.path.exists("./trained_models/" + args.policy_name + "/"):
-        print("foo")
         os.makedirs("./trained_models/" + args.policy_name + "/")
 
-    if(args.env_name not in ["Cassie-v0", "Cassie-mimic-v0", "Cassie-mimic-walking-v0"]):
-        env = gym.make(args.env_name)
-        env = NormalizedActions(env)
-    else:
+    print(args.env_name)
+
+    if(args.env_name in ["Cassie-v0", "Cassie-mimic-v0", "Cassie-mimic-walking-v0"]):
+        cassieEnv = True
         # set up cassie environment
         import gym_cassie
         from gym_cassie import CassieEnv
         env_fn = make_cassie_env()
         env = env_fn()
-        #env = gym.make(args.env_name)
-
-    # should also work
-    #env = gym.make(args.env_name)
-    max_episode_steps = 10000
-    #env = NormalizedActions(env)
+        max_episode_steps = 400
+    else:
+        cassieEnv = False
+        env = gym.make(args.env_name)
+        max_episode_steps = env._max_episode_steps
+        env = NormalizedActions(env)
+        
 
     # Set seeds
     env.seed(args.seed)
@@ -146,6 +143,7 @@ if __name__ == "__main__":
     print("state_dim: {}".format(state_dim))
     print("action_dim: {}".format(action_dim))
     print("max_action dim: {}".format(max_action))
+    print("max_episode_steps: {}".format(max_episode_steps))
 
     # Initialize policy
     if args.policy_name == "TD3":
@@ -216,8 +214,7 @@ if __name__ == "__main__":
 
         # Select action randomly or according to policy
         if total_timesteps < args.start_timesteps:
-            #action = env.action_space.sample()
-            action = torch.randn(action_dim)
+            action = torch.randn(action_dim) if cassieEnv is True else env.action_space.sample()
         else:
             action = policy.select_action(np.array(obs), param_noise)
             if args.act_noise != 0:
