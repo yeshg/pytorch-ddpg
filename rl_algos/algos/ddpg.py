@@ -9,7 +9,7 @@ from rl_algos.replay_buffer import ReplayBuffer
 #from rl_algos.model.layernorm_actor_critic import LN_Actor as Actor, LN_DDPGCritic as Critic
 from rl_algos.model.layernorm_mlp import LN_MLP_Actor as Actor, LN_MLP_DDPGCritic as Critic
 
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 
 # Re-tuned version of Deep Deterministic Policy Gradients (DDPG)

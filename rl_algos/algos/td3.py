@@ -9,7 +9,7 @@ from rl_algos.replay_buffer import ReplayBuffer
 #from rl_algos.model.layernorm_actor_critic import LN_Actor as Actor, LN_TD3Critic as Critic
 from rl_algos.model.layernorm_mlp import LN_MLP_Actor as Actor, LN_MLP_TD3Critic as Critic
 
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 
 # Implementation of Twin Delayed Deep Deterministic Policy Gradients (TD3)
@@ -39,7 +39,7 @@ class TD3(object):
             if 'ln' in name: 
                 pass 
             param = params[name]
-            param += torch.randn(param.shape) * param_noise.current_stddev
+            param += torch.randn(param.shape).to(device) * param_noise.current_stddev
 
     def select_action(self, state, param_noise=None):
         state = torch.FloatTensor(state.reshape(1, -1)).to(device)
