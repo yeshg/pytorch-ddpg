@@ -1,6 +1,5 @@
 """
 A simple live-updating logger for logging training progress.
-
 Based largely off Berkely's DRL course HW4, which is itself inspired by rllab.
 https://github.com/berkeleydeeprlcourse/homework/blob/master/hw4/logz.py
 """
@@ -111,7 +110,6 @@ class Logger():
     def record(self, key, val):
         """
         Log some diagnostic value in current iteration.
-
         Call this exactly once for each diagnostic, every iteration
         """
         if self.init:
@@ -208,6 +206,7 @@ class Logger():
                 plt.title("{0}: {1}".format(header[i], self.name))
 
                 plt.show()
+
                 plt.draw()
 
                 image = np.fromstring(

@@ -6,7 +6,8 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 
 from rl_algos.replay_buffer import ReplayBuffer
-from rl_algos.model.layernorm_actor_critic import LN_Actor as Actor, LN_DDPGCritic as Critic
+#from rl_algos.model.layernorm_actor_critic import LN_Actor as Actor, LN_DDPGCritic as Critic
+from rl_algos.model.layernorm_mlp import LN_MLP_Actor as Actor, LN_MLP_DDPGCritic as Critic
 
 #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -16,7 +17,7 @@ device = torch.device("cpu")
 
 
 class DDPG(object):
-    def __init__(self, state_dim, action_dim, max_action):
+    def __init__(self, state_dim, action_dim, max_action, plotter):
         self.actor = Actor(state_dim, action_dim, max_action, 400, 300).to(device)
         self.actor_target = Actor(state_dim, action_dim, max_action, 400, 300).to(device)
         self.actor_perturbed = Actor(state_dim, action_dim, max_action, 400, 300).to(device)

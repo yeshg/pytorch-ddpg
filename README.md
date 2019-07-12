@@ -1,35 +1,27 @@
 # rl algos
 
-Collection of rl algorithms (so far just DDPG and TD3 are implemented.)
+Collection of (off-policy) rl algorithms. Fully compatible with OpenAI gym.
 
 Real-time monitoring of training done with visdom.
 
 
-#### DDPG
-Deep Learning extension of deterministic policy gradients (DPG), an off-policy RL algorithm. My implementation uses gradually decreasing action and parameter noise to improve exploration at the start of training and then throughout the remainder of the steps.
+#### DDPG (not distributed)
+Deep Learning extension of deterministic policy gradients (DPG), an off-policy RL algorithm. My implementation uses action and parameter noise to improve exploration at the start of training and then throughout the remainder of the steps.
 
-(not parallelized)
+#### TD3 (not distributed)
+In progress - DDPG with tweaks to counter the tendency of DDPG to overestimate Q-function later during learning. Also uses action and parameter noise to improve exploration
 
-#### TD3
-In progress - DDPG with tweaks to counter the tendency of DDPG to overestimate Q-function later during learning.
-
-(not parallelized)
-
-#### D4PG
+#### D4PG (In progress, distributed)
 In progress - DDPG with Ape-X framework (using ray for this) and PER
 
-(parallelized)
-
-#### D4PG + TD3?
+#### D4PG + TD3 (In progress, distributed)
 
 This is an implementation of DDPG in Pytorch with action and parameter noise for exploration.
 
-(parallelized)
-
-
 ## TODO
-
-- Add procedure to improve exploration at start of training: for fixed number of steps (some hyperparameter) have agent take actions sampled from uniform random distribution over valid actions.
+- Implement prioritized experience replay
+- Implement Ape-X distributed training framework with Ray
+- Fix visdom logging
 - Clean up unneeded code.
 - Integrate into https://github.com/yeshg/deep-rl
 
@@ -39,3 +31,4 @@ This is an implementation of DDPG in Pytorch with action and parameter noise for
 
 Code structure, visdom logging from on https://github.com/p-morais/deep-rl
 
+Basic implementations of DDPG and TD3 from official TD3 release repo: https://github.com/sfujim/TD3

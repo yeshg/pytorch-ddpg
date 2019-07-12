@@ -62,7 +62,6 @@ def visualize(env, agent, vlen, viz_target, dt=0.033, speedup=1):
         if not done:
             R += [episode_reward]
 
-        
 
         print("avg reward:", sum(R)/len(R))
         print("avg timesteps:", vlen / len(R))
@@ -97,7 +96,7 @@ if(args.env_name not in ["Cassie-v0", "Cassie-mimic-v0"]):
 else:
     # set up cassie environment
     import gym_cassie
-    env = NormalizedActions(gym.make(args.env_name))
+    env = gym.make(args.env_name)
 
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]
