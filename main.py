@@ -45,10 +45,13 @@ def evaluate_policy(env, policy, eval_episodes=1):
     avg_reward = 0.
     for _ in range(eval_episodes):
         obs = env.reset()
-        done = False
-        while not done:
+        t = 0
+        done_bool = 0.0
+        while not done_bool:
+            t += 1
             action = policy.select_action(np.array(obs), param_noise=None)
             obs, reward, done, _ = env.step(action)
+            done_bool = 1.0 if t + 1 == max_episode_steps else float(done)
             avg_reward += reward
 
     avg_reward /= eval_episodes
@@ -116,13 +119,17 @@ if __name__ == "__main__":
 
     print(args.env_name)
 
+    # BAD practice??
+    global max_episode_steps
+
     if(args.env_name in ["Cassie-v0", "Cassie-mimic-v0", "Cassie-mimic-walking-v0"]):
         cassieEnv = True
         # set up cassie environment
         import gym_cassie
-        from gym_cassie import CassieEnv
-        env_fn = make_cassie_env()
-        env = env_fn()
+        # from gym_cassie import CassieMimicEnv
+        # env_fn = make_cassie_env()
+        # env = env_fn()
+        env = gym.make("Cassie-mimic-v0")
         max_episode_steps = 400
     else:
         cassieEnv = False
@@ -215,6 +222,7 @@ if __name__ == "__main__":
         # Select action randomly or according to policy
         if total_timesteps < args.start_timesteps:
             action = torch.randn(action_dim) if cassieEnv is True else env.action_space.sample()
+            action = action.numpy()
         else:
             action = policy.select_action(np.array(obs), param_noise)
             if args.act_noise != 0:
@@ -223,7 +231,7 @@ if __name__ == "__main__":
 
         # Perform action
         new_obs, reward, done, _ = env.step(action)
-        done_bool = 0 if episode_timesteps + 1 == max_episode_steps else float(done)
+        done_bool = 1.0 if episode_timesteps + 1 == max_episode_steps else float(done)
         episode_reward += reward
 
         # Store data in replay buffer
