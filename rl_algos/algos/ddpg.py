@@ -34,7 +34,7 @@ class DDPG(object):
         self.actor_perturbed.load_state_dict(self.actor.state_dict())
         params = self.actor_perturbed.state_dict()
         for name in params:
-            if 'ln' in name: 
+            if 'ln' in name:
                 pass 
             param = params[name]
             param += torch.randn(param.shape) * param_noise.current_stddev
