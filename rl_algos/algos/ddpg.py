@@ -94,7 +94,7 @@ class DDPG(object):
                 target_param.data.copy_(
                     tau * param.data + (1 - tau) * target_param.data)
 
-    def save(self, filename, directory):
+    def save(self):
         if not os.path.exists('trained_models/DDPG/'):
             os.makedirs('trained_models/DDPG/')
 
