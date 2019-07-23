@@ -10,12 +10,12 @@ class VisdomLinePlotter(object):
         self.viz = Visdom()
         self.env = env_name
         self.plots = {}
-    def plot(self, var_name, split_name, title_name, x, y):
+    def plot(self, var_name, x_var_name, split_name, title_name, x, y):
         if var_name not in self.plots:
             self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
                 legend=[split_name],
                 title=title_name,
-                xlabel='Iterations',
+                xlabel=x_var_name,
                 ylabel=var_name
             ))
         else:

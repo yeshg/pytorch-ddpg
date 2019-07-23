@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     # Evaluate untrained policy
     evaluations = [evaluate_policy(env, policy)]
-    plotter.plot('return', 'eval', 'Agent Return', 0, evaluations[-1])
+    plotter.plot('return', 'Timesteps', 'eval', 'Agent Return', 0, evaluations[-1])
 
     total_timesteps = 0
     timesteps_since_eval = 0
@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
             if total_timesteps != 0:
                 # Plot stuff
-                plotter.plot('return', 'train', 'Agent Return', total_timesteps, episode_reward)
+                plotter.plot('return', 'Timesteps', 'train', 'Agent Return', total_timesteps, episode_reward)
                 print("Total T: {} Episode Num: {} Episode T: {} Reward: {}".format(
                     total_timesteps, episode_num, episode_timesteps, episode_reward))
                 if args.policy_name == "TD3":
@@ -201,7 +201,7 @@ if __name__ == "__main__":
             if timesteps_since_eval >= args.eval_freq:
                 timesteps_since_eval %= args.eval_freq
                 evaluations.append(evaluate_policy(env, policy))
-                plotter.plot('return', 'eval', 'Agent Return', total_timesteps, evaluations[-1])
+                plotter.plot('return', 'Timesteps', 'eval', 'Agent Return', total_timesteps, evaluations[-1])
 
                 if args.save_models:
                     policy.save()
